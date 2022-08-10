@@ -121,3 +121,5 @@ wandb/
 
 *.pyc
 *.log
+*.zip
+ckpts/
