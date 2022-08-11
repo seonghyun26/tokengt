@@ -122,4 +122,11 @@ wandb/
 *.pyc
 *.log
 *.zip
-ckpts/
+
+# Added by seonghyun26
+large-scale-regression/log
+large-scale-regression/scripts/.neptune/
+large-scale-regression/scripts/ckpts/
+large-scale-regression/scripts/trash/
+large-scale-regression/scripts/tb/
+large-scale-regression/scripts/dataset/

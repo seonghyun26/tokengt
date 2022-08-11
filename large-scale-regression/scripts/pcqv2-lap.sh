@@ -2,7 +2,10 @@
 
 ulimit -c unlimited
 
-fairseq-train \
+today=`date +%Y%m%d_%T_log`
+touch ../log/$today.txt
+
+CUDA_VISIBLE_DEVICES=1 fairseq-train \
 --user-dir ../tokengt \
 --num-workers 16 \
 --ddp-backend=legacy_ddp \
@@ -27,4 +30,5 @@ fairseq-train \
 --data-buffer-size 20 \
 --save-dir ./ckpts/pcqv2-tokengt-lap16 \
 --tensorboard-logdir ./tb/pcqv2-tokengt-lap16 \
---no-epoch-checkpoints
+--no-epoch-checkpoints\
+> ../log/$today.txt
