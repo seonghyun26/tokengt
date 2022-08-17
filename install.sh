@@ -26,3 +26,5 @@ cd ../.. || exit
 
 # prevent train hang
 pip uninstall setuptools -y
+
+pip install setuptools==59.5.0

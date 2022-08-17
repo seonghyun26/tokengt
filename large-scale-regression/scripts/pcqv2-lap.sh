@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 
+# bash build.sh
+
+# pip install setuptools==59.5.0
+
 ulimit -c unlimited
 
 today=`date +%Y%m%d_%T_log`
 touch ../log/$today.txt
 
-CUDA_VISIBLE_DEVICES=1 fairseq-train \
+CUDA_VISIBLE_DEVICES=$1 fairseq-train \
 --user-dir ../tokengt \
 --num-workers 16 \
 --ddp-backend=legacy_ddp \
