@@ -88,8 +88,6 @@ class PygPCQM4Mv2Dataset(InMemoryDataset):
         print('Converting SMILES strings into graphs...')
         data_list = []
         for idx, i in enumerate(tqdm(range(len(smiles_list)))):
-            if idx % 100 == 0:
-                print(str(idx) + "th data")
             data = Data()
 
             smiles = smiles_list[i]
@@ -110,34 +108,39 @@ class PygPCQM4Mv2Dataset(InMemoryDataset):
             # source: cwn/data/helper_test.py
             nx_graph = to_networkx(data, node_attrs=["x"], edge_attrs=["edge_attr"])
             nx_cycles = sorted(nx.simple_cycles(nx_graph))
-            rings_node = []
-            rings_edge = []
+            rings_node = set()
+            rings_edge = set()
             for nx_cycle in nx_cycles:
                 if len(nx_cycle) <= 2:
                     continue
                 if not is_chordless(nx_graph, nx_cycle):
                     continue
 
-                rings_node.append(tuple(sorted(nx_cycle)))
-                #NOTE: Make use of chordless function, find  of edges in cycle
+                rings_node.add(tuple(sorted(nx_cycle)))
+                #NOTE: Make use of chordless function, find edges in cycle
                 edges = set()
                 for (i1, v1), (i2, v2) in itertools.combinations(enumerate(nx_cycle), 2):
                     if is_cycle_edge(i1, i2, nx_cycle) and nx_graph.has_edge(v1, v2):
                         edges.add(tuple({v1, v2}))
-                rings_edge.append(tuple(sorted(edges)))
+                rings_edge.add(tuple(sorted(edges)))
 
             ring_cnt = len(rings_node)
-            
-            # TEST print
-            print("<--Cycles Found-->")
-            print(ring_cnt)
-            print(rings_node)
-            print(rings_edge)
-            print("<--            -->\n")
 
             data.ring_cnt = int(ring_cnt)
-            data.ring_node = rings_node
-            data.ring_edge = rings_edge
+            data.ring_node = sorted(rings_node)
+            data.ring_edge = sorted(rings_edge)
+
+            # NOTE: Cell Features?
+
+            # TEST print
+            if idx % 100000 == 0:
+                # print(str(idx) + "th data")
+                # print("<--Cycles Found-->")
+                # print("Ring Cnt: " + str(data.ring_cnt))
+                # print(data.ring_node)
+                # print(data.ring_edge)
+                # print("<--            -->\n")
+            # TEST print
 
             data_list.append(data)
 

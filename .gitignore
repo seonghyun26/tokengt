@@ -130,3 +130,5 @@ large-scale-regression/scripts/ckpts/
 large-scale-regression/scripts/trash/
 large-scale-regression/scripts/tb/
 large-scale-regression/scripts/dataset/
+*.gz
+log.json

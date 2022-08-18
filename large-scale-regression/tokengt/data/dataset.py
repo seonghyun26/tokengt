@@ -100,9 +100,6 @@ class TokenGTDataset:
         self.dataset_test = self.dataset.test_data
 
     def print(self):
-        print("<-- item -->")
-        print(type(self.dataset))
-        print("<-- item -->")
         for item in self.dataset:
             print(item)
 
