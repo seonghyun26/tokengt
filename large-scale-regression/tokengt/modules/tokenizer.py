@@ -229,6 +229,21 @@ class GraphFeatureTokenizer(nn.Module):
             batched_data["edge_data"],
             batched_data["edge_num"]
         )
+        
+        (
+            ring_cnt,
+            ring_feat,
+            ring_node_lap_eigvec,
+            ring_node_lap_eigval
+        ) = (
+            batched_data["ring_cnt"],
+            batched_data["ring_feat"],
+            batched_data["ring_node_lap_eigvec"],
+            batched_data["ring_node_lap_eigval"]
+        )
+
+        #NOTE:
+        # print("LOCATION CHECK")
 
         node_feature = self.atom_encoder(node_data).sum(-2)  # [sum(n_node), D]
         edge_feature = self.edge_encoder(edge_data).sum(-2)  # [sum(n_edge), D]
@@ -276,6 +291,8 @@ class GraphFeatureTokenizer(nn.Module):
             padded_feature = padded_feature + self.get_type_embed(padded_index)
 
         padded_feature, padding_mask = self.add_special_tokens(padded_feature, padding_mask)  # [B, 2+T, D], [B, 2+T]
+        
+        #NOTE: Cell feature to be added
 
         padded_feature = padded_feature.masked_fill(padding_mask[..., None], float('0'))
         return padded_feature, padding_mask, padded_index  # [B, 2+T, D], [B, 2+T], [B, T, 2]

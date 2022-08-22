@@ -75,6 +75,10 @@ def collator(
 ):
     items = [item for item in items if
              item is not None and item.x.size(0) <= max_node and item.edge_attr.size(0) <= max_edge]
+    
+    # print("<-- ITEMS -->")
+    # print(items)
+    # print("<-- ITEMS -->\n")
 
     (
         idxs,
@@ -85,7 +89,11 @@ def collator(
         out_degree,
         lap_eigvec,
         lap_eigval,
-        ys
+        ys,
+        ring_cnt,
+        ring_feat,
+        ring_node_lap_eigvec,
+        ring_node_lap_eigval
     ) = zip(*[
         (
             item.idx,
@@ -96,7 +104,11 @@ def collator(
             item.out_degree,
             item.lap_eigvec,
             item.lap_eigval,
-            item.y
+            item.y,
+            item.ring_cnt,
+            item.ring_feat,
+            item.ring_node_lap_eigvec,
+            item.ring_node_lap_eigval
         )
         for item in items
     ])
@@ -128,6 +140,10 @@ def collator(
         y=y,
         node_num=node_num,
         edge_num=edge_num,
-        )
+        ring_cnt=ring_cnt,
+        ring_feat=ring_feat,
+        ring_node_lap_eigvec=ring_node_lap_eigvec,
+        ring_node_lap_eigval=ring_node_lap_eigval
+    )
 
     return result

@@ -41,4 +41,29 @@ def preprocess_item(item):
     item.out_degree = in_degree  # for undirected graph
     item.lap_eigvec = lap_eigvec
     item.lap_eigval = lap_eigval
+
+    #NOTE: item has ring_node, ring_edge
+    # print("\nnode data size: "+str(item.node_data.size()))
+    # print(node_data)
+    # print("lap_eigvec size: "+str(item.lap_eigvec.size()))
+    # print(lap_eigvec)
+    # print("lap_eigval size: "+str(item.lap_eigval.size()))
+    # print(lap_eigval)
+    if item.ring_cnt != 0:
+        ring_node_data = torch.stack([sum(node_data[node] for node in node_set)/len(node_set) for node_set in item.ring_node], 0)
+        ring_node_lap_eigvec = torch.stack([sum(lap_eigvec[node] for node in node_set)/len(node_set) for node_set in item.ring_node], 0)
+        ring_node_lap_eigval = torch.stack([sum(lap_eigval[node] for node in node_set)/len(node_set) for node_set in item.ring_node], 0)
+        item.ring_feat = ring_node_data
+        item.ring_node_lap_eigvec = ring_node_lap_eigvec
+        item.ring_node_lap_eigval = ring_node_lap_eigval
+        # print(ring_node_data)
+        # print(ring_node_lap_eigvec)
+        # print(ring_node_lap_eigval)
+    else:
+        item.ring_feat = [[]]
+        item.ring_node_lap_eigvec = [[]]
+        item.ring_node_lap_eigval = [[]]
+    # print(item.ring_feat)
+
+
     return item

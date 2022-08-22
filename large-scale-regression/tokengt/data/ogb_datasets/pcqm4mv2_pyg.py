@@ -19,6 +19,8 @@ from torch_geometric.utils import to_networkx
 import networkx as nx
 import itertools
 
+#NOTE: for parallel jog
+from joblib import Parallel, delayed
 
 class PygPCQM4Mv2Dataset(InMemoryDataset):
     def __init__(self, root='dataset', smiles2graph=smiles2graph, transform=None, pre_transform=None):
@@ -110,6 +112,26 @@ class PygPCQM4Mv2Dataset(InMemoryDataset):
             nx_cycles = sorted(nx.simple_cycles(nx_graph))
             rings_node = set()
             rings_edge = set()
+
+            # def getRingInformation(nx_cycle):
+            #     if len(nx_cycle) <= 2:
+            #         return
+            #     if not is_chordless(nx_graph, nx_cycle):
+            #         return
+
+            #     rings_node.add(tuple(sorted(nx_cycle)))
+            #     #NOTE: Make use of chordless function, find edges in cycle
+            #     edges = set()
+            #     for (i1, v1), (i2, v2) in itertools.combinations(enumerate(nx_cycle), 2):
+            #         if is_cycle_edge(i1, i2, nx_cycle) and nx_graph.has_edge(v1, v2):
+            #             edges.add(tuple({v1, v2}))
+            #     rings_edge.add(tuple(sorted(edges)))
+
+            # Parallel(n_jobs=8, require='sharedmem')(
+            #     delayed(getRingInformation)(nx_cycle) for nx_cycle in nx_cycles
+            # )
+
+            ring_cnt = len(rings_node)
             for nx_cycle in nx_cycles:
                 if len(nx_cycle) <= 2:
                     continue
@@ -124,23 +146,30 @@ class PygPCQM4Mv2Dataset(InMemoryDataset):
                         edges.add(tuple({v1, v2}))
                 rings_edge.add(tuple(sorted(edges)))
 
-            ring_cnt = len(rings_node)
 
             data.ring_cnt = int(ring_cnt)
             data.ring_node = sorted(rings_node)
             data.ring_edge = sorted(rings_edge)
 
-            # NOTE: Cell Features?
+            # NOTE: Cell Features simply done by sum of nodes for now
+            # ring_feat_list = []
+            # for nodes in data.ring_node:
+            #     #NOTE: divided by size or not?
+            #     size = len(nodes)
+            #     ring_feat = sum([data.x[node]/size for node in nodes])
+            #     ring_feat_list.append(ring_feat)
+            # data.ring_feat = ring_feat_list
 
-            # TEST print
-            if idx % 100000 == 0:
-                # print(str(idx) + "th data")
-                # print("<--Cycles Found-->")
-                # print("Ring Cnt: " + str(data.ring_cnt))
-                # print(data.ring_node)
-                # print(data.ring_edge)
-                # print("<--            -->\n")
-            # TEST print
+            # TEST
+            # if idx % 100000 == 0:
+            #     print(str(idx) + "th data")
+            #     print("<--Cycles Found-->")
+            #     print("Ring Cnt: " + str(data.ring_cnt))
+            #     print(data.ring_node)
+            #     print(data.ring_edge)
+            #     print(data.ring_feat)
+            #     print("<--            -->\n")
+            # TEST
 
             data_list.append(data)
 

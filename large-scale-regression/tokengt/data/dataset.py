@@ -8,16 +8,13 @@ import numpy as np
 import torch
 from fairseq.data import data_utils, FairseqDataset, BaseWrapperDataset
 
-# from .wrapper import preprocess_item
-# from .collator import collator
+from .wrapper import preprocess_item
+from .collator import collator
 
 from typing import Optional, Union
 from torch_geometric.data import Data as PYGDataset
 from dgl.data import DGLDataset
 
-# import os, sys
-# sys.path.append('./ogb_datasets/ogb_dataset_lookup_table.py')
-# from ogb_dataset_lookup_table import OGBDatasetLookupTable
 from .ogb_datasets import OGBDatasetLookupTable
 
 class BatchedDataDataset(FairseqDataset):
@@ -81,7 +78,7 @@ class TokenGTDataset:
             self.dataset = OGBDatasetLookupTable.GetOGBDataset(dataset_spec, seed=seed)
 
         self.setup()
-        self.print()
+        # self.print()
         list_N = []
         for i in range(len(self.dataset_val)):
             list_N.append(self.dataset_val[i].x.shape[0])
@@ -124,8 +121,8 @@ class EpochShuffleDataset(BaseWrapperDataset):
 
 
 ## TEST Code
-dataset = TokenGTDataset(
-    dataset_spec = "pcqm4mv2",
-    dataset_source = "ogb",
-    seed = 1
-)
+# dataset = TokenGTDataset(
+#     dataset_spec = "pcqm4mv2",
+#     dataset_source = "ogb",
+#     seed = 1
+# )

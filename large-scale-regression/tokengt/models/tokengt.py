@@ -194,6 +194,7 @@ class TokenGTEncoder(FairseqEncoder):
             self.embed_out.reset_parameters()
 
     def forward(self, batched_data, perturb=None, masked_tokens=None, **unused):
+        # NOTE: self.graph_encoder = TokenGTGraphEncoder from tokengt_graph_encoder.py
         inner_states, graph_rep, attn_dict = self.graph_encoder(batched_data, perturb=perturb)
 
         x = inner_states[-1].transpose(0, 1)  # B x T x C

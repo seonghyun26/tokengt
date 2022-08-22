@@ -284,6 +284,7 @@ class TokenGTGraphEncoder(nn.Module):
         if token_embeddings is not None:
             raise NotImplementedError
         else:
+            #NOTE: graph_feature = GraphFeatureTokenizer() module
             x, padding_mask, padded_index = self.graph_feature(batched_data, perturb)
 
         # x: B x T x C
