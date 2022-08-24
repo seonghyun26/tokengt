@@ -43,6 +43,7 @@ class GraphFeatureTokenizer(nn.Module):
 
         self.atom_encoder = nn.Embedding(num_atoms, hidden_dim, padding_idx=0)
         self.edge_encoder = nn.Embedding(num_edges, hidden_dim, padding_idx=0)
+        self.ring_encoder = nn.Embedding(num_atoms, hidden_dim, padding_idx=0)
         self.graph_token = nn.Embedding(1, hidden_dim)
         self.null_token = nn.Embedding(1, hidden_dim)  # this is optional
 
@@ -60,7 +61,7 @@ class GraphFeatureTokenizer(nn.Module):
             self.rand_encoder = nn.Linear(2 * rand_node_id_dim, hidden_dim, bias=False)
 
         if self.lap_node_id:
-            self.lap_encoder = nn.Linear(2 * lap_node_id_k, hidden_dim, bias=False)
+            self.lap_encoder = nn.Linear(3 * lap_node_id_k, hidden_dim, bias=False)
             self.lap_eig_dropout = nn.Dropout2d(p=lap_node_id_eig_dropout) if lap_node_id_eig_dropout > 0 else None
 
         if self.orf_node_id:
@@ -72,7 +73,7 @@ class GraphFeatureTokenizer(nn.Module):
         self.apply(lambda module: init_params(module, n_layers=n_layers))
 
     @staticmethod
-    def get_batch(node_feature, edge_index, edge_feature, node_num, edge_num, perturb=None):
+    def get_batch(node_feature, edge_index, edge_feature, node_num, edge_num, ring_num, ring_feature, perturb=None):
         """
         :param node_feature: Tensor([sum(node_num), D])
         :param edge_index: LongTensor([2, sum(edge_num)])
@@ -81,12 +82,18 @@ class GraphFeatureTokenizer(nn.Module):
         :param edge_num: list
         :param perturb: Tensor([B, max(node_num), D])
         :return: padded_index: LongTensor([B, T, 2]), padded_feature: Tensor([B, T, D]), padding_mask: BoolTensor([B, T])
+        
+        Added param
+        :param ring_num: list
+        :param ring_feature: list
         """
-        seq_len = [n + e for n, e in zip(node_num, edge_num)]
+
+        seq_len = [n + e + r for n, e, r in zip(node_num, edge_num, ring_num)]
         b = len(seq_len)
         d = node_feature.size(-1)
         max_len = max(seq_len)
         max_n = max(node_num)
+        max_r = max(ring_num)
         device = edge_index.device
 
         token_pos = torch.arange(max_len, device=device)[None, :].expand(b, max_len)  # [B, T]
@@ -94,27 +101,78 @@ class GraphFeatureTokenizer(nn.Module):
         seq_len = torch.tensor(seq_len, device=device, dtype=torch.long)[:, None]  # [B, 1]
         node_num = torch.tensor(node_num, device=device, dtype=torch.long)[:, None]  # [B, 1]
         edge_num = torch.tensor(edge_num, device=device, dtype=torch.long)[:, None]  # [B, 1]
+        ring_num = torch.tensor(ring_num, device=device, dtype=torch.long)[:, None]  # [B, 1]
 
         node_index = torch.arange(max_n, device=device, dtype=torch.long)[None, :].expand(b, max_n)  # [B, max_n]
-        node_index = node_index[None, node_index < node_num].repeat(2, 1)  # [2, sum(node_num)]
+        node_index = node_index[None, node_index < node_num].repeat(3, 1)  # [3, sum(node_num)]
+        
+        ring_index = torch.arange(max_r, device=device, dtype=torch.long)[None, :].expand(b, max_r)  # [B, max_n]
+        ring_index = ring_index[None, ring_index < ring_num].repeat(3, 1)  # [3, sum(node_num)]
 
+
+        # print("node_num")
+        # print(len(node_num))
+        # print(node_num)
+        # print("ring_num")
+        # print(len(ring_num))
+        # print(ring_num)
+        # print("ring_feature")
+        # print(ring_feature.shape)
+        # print(ring_feature)
+
+
+        # mask for node, edge, ring
         padded_node_mask = torch.less(token_pos, node_num)
         padded_edge_mask = torch.logical_and(
             torch.greater_equal(token_pos, node_num),
             torch.less(token_pos, node_num + edge_num)
         )
+        padded_ring_mask = torch.logical_and(
+            torch.greater_equal(token_pos, node_num + edge_num),
+            torch.less(token_pos, node_num + edge_num + ring_num)
+        )
 
-        padded_index = torch.zeros(b, max_len, 2, device=device, dtype=torch.long)  # [B, T, 2]
+        # print("mask")
+        # print("padded_node_mask")
+        # print(padded_node_mask.shape)
+        # print(padded_node_mask)
+        # print("padded_edge_mask")
+        # print(padded_edge_mask.shape)
+        # print(padded_edge_mask)
+        # print("padded_ring_mask")
+        # print(padded_ring_mask.shape)
+        # print(padded_ring_mask)
+
+        padded_index = torch.zeros(b, max_len, 3, device=device, dtype=torch.long)  # [B, T, 2]
         padded_index[padded_node_mask, :] = node_index.t()
-        padded_index[padded_edge_mask, :] = edge_index.t()
+        padded_index[padded_edge_mask, :][:, :2] = edge_index.t()
+        # padded_index[padded_ring_mask, :] = ring_index.t()
 
         if perturb is not None:
             perturb_mask = padded_node_mask[:, :max_n]  # [B, max_n]
             node_feature = node_feature + perturb[perturb_mask].type(node_feature.dtype)  # [sum(node_num), D]
+            # ring_feature = ring_feature + perturb[perturb_mask].type(ring_feature.dtype)  # [sum(ring_num), D]
+
+        # print("\nnode_feature")
+        # print(node_feature.shape)
+        # print(node_feature)
+        # print("\nring_feature")
+        # print(ring_feature.shape)
+        # print(ring_feature)
 
         padded_feature = torch.zeros(b, max_len, d, device=device, dtype=node_feature.dtype)  # [B, T, D]
+        # print("\npadded_feature")
+        # print(padded_feature.shape)
+
+        # print("\npadded_feature[padded_ring_mask, :]")
+        # print(padded_feature[padded_ring_mask, :].shape)
+        # print("\n")
+
+        
         padded_feature[padded_node_mask, :] = node_feature
         padded_feature[padded_edge_mask, :] = edge_feature
+        ring_feature_chunk = ring_feature[:padded_feature[padded_ring_mask, :].shape[0], :]
+        # padded_feature[padded_ring_mask, :] = ring_feature_chunk
 
         padding_mask = torch.greater_equal(token_pos, seq_len)  # [B, T]
         return padded_index, padded_feature, padding_mask, padded_node_mask, padded_edge_mask
@@ -174,10 +232,10 @@ class GraphFeatureTokenizer(nn.Module):
         padded_node_id = torch.zeros(b, max_n, d, device=node_id.device, dtype=node_id.dtype)  # [B, max_n, D]
         padded_node_id[node_mask] = node_id
 
-        padded_node_id = padded_node_id[:, :, None, :].expand(b, max_n, 2, d)
-        padded_index = padded_index[..., None].expand(b, max_len, 2, d)
+        padded_node_id = padded_node_id[:, :, None, :].expand(b, max_n, 3, d)
+        padded_index = padded_index[..., None].expand(b, max_len, 3, d)
         index_embed = padded_node_id.gather(1, padded_index)  # [B, T, 2, D]
-        index_embed = index_embed.view(b, max_len, 2 * d)
+        index_embed = index_embed.view(b, max_len, 3 * d)
         return index_embed
 
     def get_type_embed(self, padded_index):
@@ -231,29 +289,46 @@ class GraphFeatureTokenizer(nn.Module):
         )
         
         (
-            ring_cnt,
-            ring_feat,
+            ring_num,
+            ring_data,
+            ring_node,
             ring_node_lap_eigvec,
             ring_node_lap_eigval
         ) = (
-            batched_data["ring_cnt"],
-            batched_data["ring_feat"],
+            batched_data["ring_num"],
+            batched_data["ring_data"],
+            batched_data["ring_node"],
             batched_data["ring_node_lap_eigvec"],
             batched_data["ring_node_lap_eigval"]
         )
 
         #NOTE:
-        # print("LOCATION CHECK")
+        print("TOKENIZER")
 
         node_feature = self.atom_encoder(node_data).sum(-2)  # [sum(n_node), D]
         edge_feature = self.edge_encoder(edge_data).sum(-2)  # [sum(n_edge), D]
+        ring_feature = self.ring_encoder(ring_data).sum(-2)
         device = node_feature.device
         dtype = node_feature.dtype
 
+        # print("\nnode_feature")
+        # print(node_feature.shape)
+        # print(node_feature)
+        # print("\nring_feature")
+        # print(ring_feature.shape)
+        # print(ring_feature)
+
         padded_index, padded_feature, padding_mask, _, _ = self.get_batch(
-            node_feature, edge_index, edge_feature, node_num, edge_num, perturb
+            node_feature, edge_index, edge_feature, node_num, edge_num, ring_num, ring_feature, perturb
         )
+
         node_mask = self.get_node_mask(node_num, node_feature.device)  # [B, max(n_node)]
+        # print("node num")
+        # print(node_num)
+        # print("node data")
+        # print(node_data.shape)
+        # print(node_data)
+        # print("\n")
 
         if self.rand_node_id:
             rand_node_id = torch.rand(sum(node_num), self.rand_node_id_dim, device=device, dtype=dtype)  # [sum(n_node), D]

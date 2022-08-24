@@ -42,7 +42,7 @@ def preprocess_item(item):
     item.lap_eigvec = lap_eigvec
     item.lap_eigval = lap_eigval
 
-    #NOTE: item has ring_node, ring_edge
+    #NOTE: Cell Features simply done by sum of nodes for now
     # print("\nnode data size: "+str(item.node_data.size()))
     # print(node_data)
     # print("lap_eigvec size: "+str(item.lap_eigvec.size()))
@@ -50,19 +50,20 @@ def preprocess_item(item):
     # print("lap_eigval size: "+str(item.lap_eigval.size()))
     # print(lap_eigval)
     if item.ring_cnt != 0:
-        ring_node_data = torch.stack([sum(node_data[node] for node in node_set)/len(node_set) for node_set in item.ring_node], 0)
+        ring_feat = torch.stack([sum(node_data[node] for node in node_set)/len(node_set) for node_set in item.ring_node], 0)
         ring_node_lap_eigvec = torch.stack([sum(lap_eigvec[node] for node in node_set)/len(node_set) for node_set in item.ring_node], 0)
         ring_node_lap_eigval = torch.stack([sum(lap_eigval[node] for node in node_set)/len(node_set) for node_set in item.ring_node], 0)
-        item.ring_feat = ring_node_data
+        item.ring_feat = ring_feat
         item.ring_node_lap_eigvec = ring_node_lap_eigvec
         item.ring_node_lap_eigval = ring_node_lap_eigval
-        # print(ring_node_data)
+        # print("WRAPPER")
+        # print(ring_feat)
         # print(ring_node_lap_eigvec)
         # print(ring_node_lap_eigval)
     else:
-        item.ring_feat = [[]]
-        item.ring_node_lap_eigvec = [[]]
-        item.ring_node_lap_eigval = [[]]
+        item.ring_feat = torch.empty(1,6)
+        item.ring_node_lap_eigvec = torch.empty(1,N)
+        item.ring_node_lap_eigval = torch.empty(1,N)
     # print(item.ring_feat)
 
 

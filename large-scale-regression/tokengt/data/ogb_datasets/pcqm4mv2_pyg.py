@@ -105,6 +105,9 @@ class PygPCQM4Mv2Dataset(InMemoryDataset):
             data.x = torch.from_numpy(graph['node_feat']).to(torch.int64)
             data.y = torch.Tensor([homolumogap])
 
+            # print("edge_index")
+            # print(edge_index)
+
             #NOTE: nx graph
             # Using Code from CWN
             # source: cwn/data/helper_test.py
@@ -113,25 +116,37 @@ class PygPCQM4Mv2Dataset(InMemoryDataset):
             rings_node = set()
             rings_edge = set()
 
-            # def getRingInformation(nx_cycle):
-            #     if len(nx_cycle) <= 2:
-            #         return
-            #     if not is_chordless(nx_graph, nx_cycle):
-            #         return
+            def getRingInformation(nx_cycle):
+                if len(nx_cycle) <= 2:
+                    return None
+                if not is_chordless(nx_graph, nx_cycle):
+                    return None
 
-            #     rings_node.add(tuple(sorted(nx_cycle)))
-            #     #NOTE: Make use of chordless function, find edges in cycle
-            #     edges = set()
-            #     for (i1, v1), (i2, v2) in itertools.combinations(enumerate(nx_cycle), 2):
-            #         if is_cycle_edge(i1, i2, nx_cycle) and nx_graph.has_edge(v1, v2):
-            #             edges.add(tuple({v1, v2}))
-            #     rings_edge.add(tuple(sorted(edges)))
+                rings_node = tuple(sorted(nx_cycle))
+                #NOTE: Make use of chordless function, find edges in cycle
+                edges = set()
+                for (i1, v1), (i2, v2) in itertools.combinations(enumerate(nx_cycle), 2):
+                    if is_cycle_edge(i1, i2, nx_cycle) and nx_graph.has_edge(v1, v2):
+                        edges.add(tuple({v1, v2}))
+                rings_edge = tuple(sorted(edges))
 
-            # Parallel(n_jobs=8, require='sharedmem')(
+                return (rings_node, rings_edge)
+
+            # par_job = Parallel(n_jobs=8)(
             #     delayed(getRingInformation)(nx_cycle) for nx_cycle in nx_cycles
             # )
 
+            # par_job = list(filter(None, par_job))
+            # rings_node = set()
+            # rings_edge = set()
+            # for (ring_node, ring_edge) in par_job:
+            #     rings_node.add(ring_node)
+            #     rings_edge.add(ring_edge)
+            # print(rings_node)
+            # print(rings_edge)
+
             ring_cnt = len(rings_node)
+            # NOTE: Ring Finding algorithm
             for nx_cycle in nx_cycles:
                 if len(nx_cycle) <= 2:
                     continue
@@ -150,15 +165,6 @@ class PygPCQM4Mv2Dataset(InMemoryDataset):
             data.ring_cnt = int(ring_cnt)
             data.ring_node = sorted(rings_node)
             data.ring_edge = sorted(rings_edge)
-
-            # NOTE: Cell Features simply done by sum of nodes for now
-            # ring_feat_list = []
-            # for nodes in data.ring_node:
-            #     #NOTE: divided by size or not?
-            #     size = len(nodes)
-            #     ring_feat = sum([data.x[node]/size for node in nodes])
-            #     ring_feat_list.append(ring_feat)
-            # data.ring_feat = ring_feat_list
 
             # TEST
             # if idx % 100000 == 0:
