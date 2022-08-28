@@ -89,6 +89,7 @@ class PygPCQM4Mv2Dataset(InMemoryDataset):
 
         print('Converting SMILES strings into graphs...')
         data_list = []
+        unique_ring = set()
         for idx, i in enumerate(tqdm(range(len(smiles_list)))):
             data = Data()
 
@@ -113,8 +114,6 @@ class PygPCQM4Mv2Dataset(InMemoryDataset):
             # source: cwn/data/helper_test.py
             nx_graph = to_networkx(data, node_attrs=["x"], edge_attrs=["edge_attr"])
             nx_cycles = sorted(nx.simple_cycles(nx_graph))
-            rings_node = set()
-            rings_edge = set()
 
             def getRingInformation(nx_cycle):
                 if len(nx_cycle) <= 2:
@@ -132,21 +131,21 @@ class PygPCQM4Mv2Dataset(InMemoryDataset):
 
                 return (rings_node, rings_edge)
 
-            # par_job = Parallel(n_jobs=8)(
+            #NOTE: using parallel
+            # par_job = Parallel(n_jobs=-1)(
             #     delayed(getRingInformation)(nx_cycle) for nx_cycle in nx_cycles
-            # )
-
+            # # )
             # par_job = list(filter(None, par_job))
             # rings_node = set()
             # rings_edge = set()
             # for (ring_node, ring_edge) in par_job:
             #     rings_node.add(ring_node)
             #     rings_edge.add(ring_edge)
-            # print(rings_node)
-            # print(rings_edge)
 
-            ring_cnt = len(rings_node)
+    
             # NOTE: Ring Finding algorithm
+            rings_node = set()
+            rings_edge = set()
             for nx_cycle in nx_cycles:
                 if len(nx_cycle) <= 2:
                     continue
@@ -161,10 +160,14 @@ class PygPCQM4Mv2Dataset(InMemoryDataset):
                         edges.add(tuple({v1, v2}))
                 rings_edge.add(tuple(sorted(edges)))
 
-
-            data.ring_cnt = int(ring_cnt)
+            data.ring_cnt = int(len(rings_node))
             data.ring_node = sorted(rings_node)
             data.ring_edge = sorted(rings_edge)
+            
+            #NOTE: Calculate unique Ring
+            # for idx, ring_set in enumerate(data.ring_node):
+            #     ring_ft = [data.x[node-1] for node in ring_set]
+            #     unique_ring.add(tuple(ring_ft))
 
             # TEST
             # if idx % 100000 == 0:
@@ -173,11 +176,14 @@ class PygPCQM4Mv2Dataset(InMemoryDataset):
             #     print("Ring Cnt: " + str(data.ring_cnt))
             #     print(data.ring_node)
             #     print(data.ring_edge)
-            #     print(data.ring_feat)
             #     print("<--            -->\n")
             # TEST
 
             data_list.append(data)
+
+        #NOTE: Calculate Ring Number
+        # print('Number of Rings: ' + str(sum([data.ring_cnt for data in data_list])))
+        # print('Number of Unique Rings : ' + str(len(unique_ring)))
 
         # double-check prediction target
         split_dict = self.get_idx_split()

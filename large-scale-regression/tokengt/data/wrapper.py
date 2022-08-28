@@ -42,29 +42,24 @@ def preprocess_item(item):
     item.lap_eigvec = lap_eigvec
     item.lap_eigval = lap_eigval
 
-    #NOTE: Cell Features simply done by sum of nodes for now
-    # print("\nnode data size: "+str(item.node_data.size()))
-    # print(node_data)
-    # print("lap_eigvec size: "+str(item.lap_eigvec.size()))
-    # print(lap_eigvec)
-    # print("lap_eigval size: "+str(item.lap_eigval.size()))
-    # print(lap_eigval)
-    if item.ring_cnt != 0:
-        ring_feat = torch.stack([sum(node_data[node] for node in node_set)/len(node_set) for node_set in item.ring_node], 0)
-        ring_node_lap_eigvec = torch.stack([sum(lap_eigvec[node] for node in node_set)/len(node_set) for node_set in item.ring_node], 0)
-        ring_node_lap_eigval = torch.stack([sum(lap_eigval[node] for node in node_set)/len(node_set) for node_set in item.ring_node], 0)
-        item.ring_feat = ring_feat
-        item.ring_node_lap_eigvec = ring_node_lap_eigvec
-        item.ring_node_lap_eigval = ring_node_lap_eigval
-        # print("WRAPPER")
-        # print(ring_feat)
-        # print(ring_node_lap_eigvec)
-        # print(ring_node_lap_eigval)
-    else:
-        item.ring_feat = torch.empty(1,6)
-        item.ring_node_lap_eigvec = torch.empty(1,N)
-        item.ring_node_lap_eigval = torch.empty(1,N)
-    # print(item.ring_feat)
+    #NOTE: Cell Features Calculation using edge feature
+    # edge_index: [ tensor, ..., tensor ]
+    # tensor: [ [node num ...] [node num ...] ]
+    # edge : [a, b]
+    ring_data = []
+    for edge_set in item.ring_edge:
+        # print(edge_set)
+        new_ft_ls = []
+        for idx_ in range(len(edge_index[0])):
+            if (edge_index[0][idx_].item(), edge_index[1][idx_].item()) in edge_set:
+                new_ft_ls.append(edge_data[idx_]/len(edge_set))
+        new_ring_feat = sum(new_ft_ls).type(torch.int64)
+        ring_data.append(new_ring_feat)
 
+    if len(item.ring_edge) !=0:
+        ring_data = torch.stack(ring_data)
+    else:
+        ring_data = torch.zeros(1, 3, dtype=int)
+    item.ring_data = ring_data
 
     return item

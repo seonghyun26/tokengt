@@ -169,8 +169,9 @@ class TokenGTGraphEncoderLayer(nn.Module):
         # x: T x B x C
         if self.layernorm_style == "prenorm":
             residual = x
-            print("x")
-            print(x.shape)
+            #NOTE: x
+            # print("x")
+            # print(x.shape)
             x = self.self_attn_layer_norm(x)
             x, attn = self.self_attn(
                 query=x,

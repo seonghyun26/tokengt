@@ -91,8 +91,8 @@ def collator(
         lap_eigval,
         ys,
         ring_node,
-        ring_node_lap_eigvec,
-        ring_node_lap_eigval
+        ring_edge,
+        ring_data
     ) = zip(*[
         (
             item.idx,
@@ -105,8 +105,8 @@ def collator(
             item.lap_eigval,
             item.y,
             item.ring_node,
-            item.ring_node_lap_eigvec,
-            item.ring_node_lap_eigval
+            item.ring_edge,
+            item.ring_data
         )
         for item in items
     ])
@@ -119,34 +119,38 @@ def collator(
     ring_num = [len(i) for i in ring_node]
     
     # print("COLLATOR")
-    # print("node_num")
+    # Most data in 128 length list
+    # print("\nnode_num")
     # print(len(node_num))
     # print(node_num)
-    # print("node_data")
+    # print("\nnode_data")
     # print(len(node_data))
     # print(node_data)
-    # print("ring_node")
+
+    # print("\nedge_data")
+    # print(len(edge_data))
+    # print(edge_data)
+
+    # print("\nring_node")
     # print(len(ring_node))
     # print(ring_node)
 
-    #NOTE: Calcualte ring feature
-    ring_data = []
-    for idx, ring_set in enumerate(ring_node):
-        new_ft_ls = []
-        # print(ring_set)
-        for ring_nodes in ring_set:
-            # print(ring_nodes)
-            new_ft = sum([node_data[idx][node-1]//len(ring_nodes) for node in ring_nodes])
-            new_ft_ls.append(new_ft)
 
-        if len(ring_set) !=0:
-            new_ring_feat = torch.stack(new_ft_ls)
-        else:
-            new_ring_feat = torch.zeros(1, 9, dtype=int)
-        # print(new_ring_feat)
+    #NOTE: Calcualte ring feature by node feature
+    # ring_data = []
+    # for idx, ring_set in enumerate(ring_node):
+    #     new_ft_ls = []
+    #     for ring_nodes in ring_set:
+    #         new_ft = sum([node_data[idx][node]//len(ring_nodes) for node in ring_nodes])
+    #         new_ft_ls.append(new_ft)
 
-        ring_data.append(new_ring_feat)
-    ring_data = tuple(ring_data)
+    #     if len(ring_set) !=0:
+    #         new_ring_feat = torch.stack(new_ft_ls)
+    #     else:
+    #         new_ring_feat = torch.zeros(1, 9, dtype=int)
+
+    #     ring_data.append(new_ring_feat)
+    # ring_data = tuple(ring_data)
 
     y = torch.cat(ys)  # [B,]
     edge_index = torch.cat(edge_index, dim=1)  # [2, sum(edge_num)]
@@ -173,10 +177,9 @@ def collator(
         node_num=node_num,
         edge_num=edge_num,
         ring_num=ring_num,
-        ring_data=ring_data,
         ring_node=ring_node,
-        ring_node_lap_eigvec=ring_node_lap_eigvec,
-        ring_node_lap_eigval=ring_node_lap_eigval
+        ring_edge=ring_edge,
+        ring_data=ring_data
     )
 
     return result

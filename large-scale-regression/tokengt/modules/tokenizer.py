@@ -172,7 +172,7 @@ class GraphFeatureTokenizer(nn.Module):
         padded_feature[padded_node_mask, :] = node_feature
         padded_feature[padded_edge_mask, :] = edge_feature
         ring_feature_chunk = ring_feature[:padded_feature[padded_ring_mask, :].shape[0], :]
-        # padded_feature[padded_ring_mask, :] = ring_feature_chunk
+        padded_feature[padded_ring_mask, :] = ring_feature_chunk
 
         padding_mask = torch.greater_equal(token_pos, seq_len)  # [B, T]
         return padded_index, padded_feature, padding_mask, padded_node_mask, padded_edge_mask
@@ -290,20 +290,37 @@ class GraphFeatureTokenizer(nn.Module):
         
         (
             ring_num,
-            ring_data,
             ring_node,
-            ring_node_lap_eigvec,
-            ring_node_lap_eigval
+            ring_edge,
+            ring_data
         ) = (
             batched_data["ring_num"],
-            batched_data["ring_data"],
             batched_data["ring_node"],
-            batched_data["ring_node_lap_eigvec"],
-            batched_data["ring_node_lap_eigval"]
+            batched_data["ring_edge"],
+            batched_data["ring_data"]
         )
 
         #NOTE:
-        print("TOKENIZER")
+        # print("<-TOKENIZER->")
+        # print("\nedge_index")
+        # print(edge_index)
+        # print(edge_index.shape)
+        # print("\nedge_data")
+        # print(edge_data.shape)
+        # print(edge_data)
+
+        # print("\nnode data")
+        # print(node_data.shape)
+        # print(node_data)
+        # print("\nnode num")
+        # print(node_num)
+        # print("\nnode_feature")
+        # print(node_feature.shape)
+        # print(node_feature)
+
+        # print("\nring_feature")
+        # print(ring_feature.shape)
+        # print(ring_feature)
 
         node_feature = self.atom_encoder(node_data).sum(-2)  # [sum(n_node), D]
         edge_feature = self.edge_encoder(edge_data).sum(-2)  # [sum(n_edge), D]
@@ -311,24 +328,12 @@ class GraphFeatureTokenizer(nn.Module):
         device = node_feature.device
         dtype = node_feature.dtype
 
-        # print("\nnode_feature")
-        # print(node_feature.shape)
-        # print(node_feature)
-        # print("\nring_feature")
-        # print(ring_feature.shape)
-        # print(ring_feature)
 
         padded_index, padded_feature, padding_mask, _, _ = self.get_batch(
             node_feature, edge_index, edge_feature, node_num, edge_num, ring_num, ring_feature, perturb
         )
 
         node_mask = self.get_node_mask(node_num, node_feature.device)  # [B, max(n_node)]
-        # print("node num")
-        # print(node_num)
-        # print("node data")
-        # print(node_data.shape)
-        # print(node_data)
-        # print("\n")
 
         if self.rand_node_id:
             rand_node_id = torch.rand(sum(node_num), self.rand_node_id_dim, device=device, dtype=dtype)  # [sum(n_node), D]
